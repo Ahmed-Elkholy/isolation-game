@@ -42,5 +42,55 @@ class CustomPlayer(DataPlayer):
         # EXAMPLE: choose a random move without any search--this function MUST
         #          call self.queue.put(ACTION) at least once before time expires
         #          (the timer is automatically managed for you)
-        import random
-        self.queue.put(random.choice(state.actions()))
+        self.queue.put(self.alpha_beta_search(state))
+
+    def alpha_beta_search(self, state, depth=3):
+        """ Return the move along a branch of the game tree that
+        has the best possible value.  A move is a pair of coordinates
+        in (column, row) order corresponding to a legal move for
+        the searching player.
+
+        You can ignore the special case of calling this function
+        from a terminal state.
+        """
+        alpha = float("-inf")
+        beta = float("inf")
+        best_score = float("-inf")
+        best_move = None
+        for a in state.actions():
+            v = self._min_value(state.result(a), alpha, beta, depth - 1)
+            alpha = max(alpha, v)
+            if v > best_score:
+                best_score = v
+                best_move = a
+        return best_move
+
+    def _min_value(self, state, alpha, beta, depth):
+        """ Return the value for a win (+1) if the game is over,
+        otherwise return the minimum value over all legal child
+        nodes.
+        """
+        if depth <= 0 or state.terminal_test():
+            return state.utility(0)
+
+        v = float("inf")
+        for a in state.actions():
+            v = min(v, self._max_value(state.result(a), alpha, beta, depth - 1))
+            if v <= alpha: return v
+            beta = min(beta, v)
+        return v
+
+    def _max_value(self, state, alpha, beta, depth):
+        """ Return the value for a loss (-1) if the game is over,
+        otherwise return the maximum value over all legal child
+        nodes.
+        """
+        if depth <= 0 or state.terminal_test():
+            return state.utility(0)
+
+        v = float("-inf")
+        for a in state.actions():
+            v = max(v, self._min_value(state.result(a), alpha, beta, depth - 1))
+            if v >= beta: return v
+            alpha = max(alpha, v)
+        return v
