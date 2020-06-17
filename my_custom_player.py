@@ -1,5 +1,6 @@
 
 from sample_players import DataPlayer
+import random
 
 
 class CustomPlayer(DataPlayer):
@@ -42,9 +43,13 @@ class CustomPlayer(DataPlayer):
         # EXAMPLE: choose a random move without any search--this function MUST
         #          call self.queue.put(ACTION) at least once before time expires
         #          (the timer is automatically managed for you)
-        self.queue.put(self.alpha_beta_search(state))
+        depth = 1
+        while True:
+            action = self.alpha_beta_search(state, depth)
+            self.queue.put(action)    
+            depth += 1   
 
-    def alpha_beta_search(self, state, depth=3):
+    def alpha_beta_search(self, state, depth):
         """ Return the move along a branch of the game tree that
         has the best possible value.  A move is a pair of coordinates
         in (column, row) order corresponding to a legal move for
@@ -57,12 +62,16 @@ class CustomPlayer(DataPlayer):
         beta = float("inf")
         best_score = float("-inf")
         best_move = None
+        v = None
         for a in state.actions():
             v = self._min_value(state.result(a), alpha, beta, depth - 1)
             alpha = max(alpha, v)
             if v > best_score:
                 best_score = v
                 best_move = a
+        # player lost
+        if best_move == None:
+            best_move = random.choice(state.actions())
         return best_move
 
     def _min_value(self, state, alpha, beta, depth):
@@ -70,8 +79,11 @@ class CustomPlayer(DataPlayer):
         otherwise return the minimum value over all legal child
         nodes.
         """
-        if depth <= 0 or state.terminal_test():
-            return state.utility(0)
+        if state.terminal_test():
+            return state.utility(self.player_id)
+
+        if depth <= 0:
+            return self.my_moves_heuristic(state)
 
         v = float("inf")
         for a in state.actions():
@@ -85,8 +97,11 @@ class CustomPlayer(DataPlayer):
         otherwise return the maximum value over all legal child
         nodes.
         """
-        if depth <= 0 or state.terminal_test():
-            return state.utility(0)
+        if state.terminal_test():
+            return state.utility(self.player_id)
+
+        if depth <= 0:
+            return self.my_moves_heuristic(state)
 
         v = float("-inf")
         for a in state.actions():
@@ -94,3 +109,6 @@ class CustomPlayer(DataPlayer):
             if v >= beta: return v
             alpha = max(alpha, v)
         return v
+
+    def my_moves_heuristic(self, state):
+        return len(state.liberties(state.locs[self.player_id])) - len(state.liberties(state.locs[1-self.player_id]))
